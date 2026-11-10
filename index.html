@@ -90,14 +90,16 @@ function toast(t) { const el = $('toast'); el.textContent = t; el.style.display 
 async function api(body) {
   const tk = liff.getIDToken();
   if (!tk) throw { err: 'no_token' };
-  const res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ idToken: tk }, body)) });
-  const j = await res.json();
+  const res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({}, body, { idToken: tk })) }); // "api" ต้องเป็นคีย์แรก (บอทแยกคำขอจาก webhook ด้วยคีย์นี้)
+  const raw = await res.text();
+  let j; try { j = JSON.parse(raw); } catch (x) { throw { err: 'server', detail: 'บอทตอบกลับ: ' + raw.slice(0, 80) }; }
   if (!j.ok) throw j;
   return j;
 }
 function showErr(e) {
   const m = ERR[e && e.err] || ERR.server;
   $('main').innerHTML = '<div class="msg"><h3>' + esc(m[0]) + '</h3><div style="white-space:pre-wrap">' + esc(m[1]) + '</div>' +
+    (e && (e.detail || e.message) ? '<p style="font-size:13px;color:var(--muted)">' + esc(e.detail || e.message) + '</p>' : '') +
     (liff.isInClient() ? '<p><button class="btn pri" onclick="liff.closeWindow()">กลับไปที่แชท</button></p>' : '') + '</div>';
   if (e && /^(unregistered|pending|blocked|bad_token|no_token|not_configured)$/.test(e.err)) { $('who').textContent = ''; $('tabs').innerHTML = ''; }
 }
